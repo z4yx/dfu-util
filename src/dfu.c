@@ -132,6 +132,7 @@ int dfu_get_status( struct dfu_if *dif, struct dfu_status *status )
 {
     unsigned char buffer[6];
     int result;
+    int retry = 3;
 
     /* Initialize the status data structure */
     status->bStatus       = DFU_STATUS_ERROR_UNKNOWN;
@@ -139,14 +140,16 @@ int dfu_get_status( struct dfu_if *dif, struct dfu_status *status )
     status->bState        = STATE_DFU_ERROR;
     status->iString       = 0;
 
-    result = libusb_control_transfer( dif->dev_handle,
-          /* bmRequestType */ LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE,
-          /* bRequest      */ DFU_GETSTATUS,
-          /* wValue        */ 0,
-          /* wIndex        */ dif->interface,
-          /* Data          */ buffer,
-          /* wLength       */ 6,
-                              dfu_timeout );
+    do {
+        result = libusb_control_transfer( dif->dev_handle,
+            /* bmRequestType */ LIBUSB_ENDPOINT_IN | LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE,
+            /* bRequest      */ DFU_GETSTATUS,
+            /* wValue        */ 0,
+            /* wIndex        */ dif->interface,
+            /* Data          */ buffer,
+            /* wLength       */ 6,
+                                dfu_timeout );
+    } while ( retry-- && result != 6 );
 
     if( 6 == result ) {
         status->bStatus = buffer[0];
